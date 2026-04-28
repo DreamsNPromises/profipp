@@ -17,6 +17,8 @@
 #include <cstdarg>
 #include <cstdio>
 
+#include <algorithm>
+
 inline constexpr static uint32_t arepNull{UINT32_MAX};
 inline constexpr static bool monitorCycleTimes{false};
 
@@ -34,28 +36,52 @@ ProfinetInternal::~ProfinetInternal()
 }
 static inline std::string strPrintf (const char* format, ...)
 {
-    std::va_list args;
-    std::string retval;
+   std::va_list args;
+   va_start (args, format);
 
-    va_start (args, format);
-    retval.resize (vsnprintf (0, 0, format, args));
-    vsnprintf (&retval[0], retval.size () + 1, format, args);
-    va_end (args);
+   std::va_list args_copy;
+   va_copy(args_copy, args);
 
-    return retval;
+   int len = vsnprintf(NULL, 0, format, args);
+   if (len < 0) { va_end(args); va_end(args_copy); return ""; }
+
+   std::string retval;
+   retval.resize(len);
+
+   vsnprintf(&retval[0], len + 1, format, args_copy);
+
+   va_end(args_copy);
+   va_end(args);
+
+   return retval;
 }
+
 void ProfinetInternal::Log(LogLevel logLevel, const char* format, ...) noexcept
 {
-   if(!logFun)
-      return;
-   va_list args;
-   std::string message;
+    if (!logFun)
+        return;
 
-   va_start (args, format);
-   message.resize (vsnprintf (0, 0, format, args));
-   vsnprintf (&message[0], message.size () + 1, format, args);
-   va_end (args);
-   logFun(logLevel, std::move(message));
+    va_list args;
+    va_start(args, format);
+
+    va_list args_copy;
+    va_copy(args_copy, args);
+
+    int len = vsnprintf(nullptr, 0, format, args);
+    va_end(args);
+
+    if (len < 0) {
+        logFun(logLevel, "formatting error in Log");
+        va_end(args_copy);
+        return;
+    }
+
+    std::string message(static_cast<size_t>(len), '\0');
+
+    vsnprintf(&message[0], len + 1, format, args_copy);
+    va_end(args_copy);
+
+    logFun(logLevel, std::move(message));
 }
 
 bool ProfinetInternal::Initialize(const Profinet& configuration_, LoggerType logger)

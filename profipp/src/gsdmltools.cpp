@@ -12,21 +12,27 @@
 #include <iomanip> // put_time()
 #include <filesystem>
 
+#include <cstddef>
+
 namespace profinet::gsdml
 {
 
 inline std::string str_printf (const char* format, ...)
-{
-    using namespace std;
+{	
+	using namespace std;
+	
+	va_list args;
+    va_start(args, format);
 
-    std::va_list args;
-    std::string retval;
+    va_list args_copy;
+    va_copy(args_copy, args);
+    int size = vsnprintf(nullptr, 0, format, args_copy);
+    va_end(args_copy);
 
-    va_start (args, format);
-    retval.resize (vsnprintf (0, 0, format, args));
-    vsnprintf (&retval[0], retval.size () + 1, format, args);
-    va_end (args);
+    std::string retval(size, '\0');
+    vsnprintf(&retval[0], size + 1, format, args);
 
+    va_end(args);
     return retval;
 }
 std::string GenerateGsdmlFileName(const Profinet& profinet)
@@ -48,6 +54,7 @@ bool CreateGsdml(const Profinet& profinet, const std::string& pathToFolder)
 inline bool CreateDOM(const Profinet& profinet, pugi::xml_document& doc)
 {
     auto& props{profinet.GetDevice().properties};
+	
     std::map<std::string, std::string> texts{};
     auto addText = [&texts](const std::string& identifier, const std::string& text) -> const char*
     {
@@ -87,6 +94,7 @@ inline bool CreateDOM(const Profinet& profinet, pugi::xml_document& doc)
     // Profile body
     auto body{profile.append_child("ProfileBody")};
     auto identity{body.append_child("DeviceIdentity")};
+	
     identity.append_attribute("VendorID").set_value(str_printf("%#.4x", props.vendorID).c_str() );
     identity.append_attribute("DeviceID").set_value(str_printf("%#.4x", props.deviceID).c_str());
     identity.append_child("InfoText").append_attribute("TextId").set_value(textIDDeviceInfo);

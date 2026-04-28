@@ -14,6 +14,7 @@ class ProfinetControl
 {
 public:
     virtual bool Start() = 0;
+    virtual bool IsConnectedToController() = 0;
 };
 
 class Profinet final

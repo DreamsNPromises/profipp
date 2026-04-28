@@ -25,7 +25,7 @@ public:
 
     bool Initialize(const Profinet& configuration, LoggerType logger = logging::CreateConsoleLogger());
     virtual bool Start() override;
-    bool IsConnectedToController();
+    virtual bool IsConnectedToController() override;
 private:
     DeviceInstance device;
     Profinet configuration;
