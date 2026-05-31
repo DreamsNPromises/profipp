@@ -21,6 +21,7 @@ extern "C" {
 #endif
 
 #include <assert.h>
+#include <endian.h>
 
 #if defined(__clang__)
 #if !defined(CLANG_ANALYZER_NORETURN)
